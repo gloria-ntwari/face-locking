@@ -45,6 +45,68 @@ class MatchResult:
 
 
 # -------------------------
+# Lazy single-image recognizer API
+# -------------------------
+_DET: Optional["HaarFaceMesh5pt"] = None
+_EMBEDDER: Optional["ArcFaceEmbedderONNX"] = None
+_MATCHER: Optional["FaceDBMatcher"] = None
+_DB_PATH = Path("data/db/face_db.npz")
+
+
+def _lazy_init_singleton() -> None:
+    """Initialize global detector/embedder/matcher once for per-frame use.
+
+    This is used by `recognize_face` so that `detect.py` can call into a
+    simple function without reloading models on every frame.
+    """
+    global _DET, _EMBEDDER, _MATCHER
+
+    if _DET is None:
+        _DET = HaarFaceMesh5pt()
+    if _EMBEDDER is None:
+        _EMBEDDER = ArcFaceEmbedderONNX()
+    if _MATCHER is None:
+        db = load_db_npz(_DB_PATH)
+        _MATCHER = FaceDBMatcher(db, dist_thresh=0.34)
+
+
+def recognize_face(face_img) -> Tuple[str, float]:
+    """Recognize a single face image.
+
+    Parameters
+    ----------
+    face_img : np.ndarray (H, W, 3) BGR
+        Cropped face region from the original frame.
+
+    Returns
+    -------
+    name : str
+        Matched person name or "Unknown".
+    confidence : float
+        Similarity score in [0, 1]. Higher is better.
+    """
+
+    _lazy_init_singleton()
+
+    assert _DET is not None and _EMBEDDER is not None and _MATCHER is not None
+
+    # We run the 5-point detection on the provided crop. If it fails,
+    # we fall back to "Unknown".
+    faces = _DET.detect(face_img, max_faces=1)
+    if not faces:
+        return "Unknown", 0.0
+
+    f = faces[0]
+    aligned, _ = align_face_5pt(face_img, f.kps)
+    emb = _EMBEDDER.embed(aligned)
+    mr = _MATCHER.match(emb)
+
+    name = mr.name if mr.name is not None else "Unknown"
+    confidence = mr.similarity
+    return name, confidence
+
+
+# -------------------------
 # Math helpers
 # -------------------------
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
