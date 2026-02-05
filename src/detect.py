@@ -35,10 +35,10 @@ def main():
             face_img = frame[y:y + h, x:x + w]
 
             # 🔹 Recognition (ArcFace + 5pt alignment)
-            name, confidence = recognize_face(face_img)
+            name, confidence, landmarks = recognize_face(face_img)
 
             # 🔹 Face locking logic
-            handle_face(name, (x, y, x + w, y + h))
+            action = handle_face(name, (x, y, x + w, y + h), landmarks)
 
             # 🔹 Draw result
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -51,6 +51,17 @@ def main():
                 (0, 255, 0),
                 2,
             )
+            
+            if action:
+                cv2.putText(
+                    frame,
+                    f"ACTION: {action}",
+                    (x, y + h + 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 0, 255),
+                    2,
+                )
 
         cv2.imshow("Face Locking System", frame)
 

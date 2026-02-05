@@ -70,7 +70,7 @@ def _lazy_init_singleton() -> None:
         _MATCHER = FaceDBMatcher(db, dist_thresh=0.34)
 
 
-def recognize_face(face_img) -> Tuple[str, float]:
+def recognize_face(face_img) -> Tuple[str, float, Optional[np.ndarray]]:
     """Recognize a single face image.
 
     Parameters
@@ -84,6 +84,8 @@ def recognize_face(face_img) -> Tuple[str, float]:
         Matched person name or "Unknown".
     confidence : float
         Similarity score in [0, 1]. Higher is better.
+    kps : np.ndarray | None
+        5 facial landmarks (if detected), else None.
     """
 
     _lazy_init_singleton()
@@ -94,7 +96,7 @@ def recognize_face(face_img) -> Tuple[str, float]:
     # we fall back to "Unknown".
     faces = _DET.detect(face_img, max_faces=1)
     if not faces:
-        return "Unknown", 0.0
+        return "Unknown", 0.0, None
 
     f = faces[0]
     aligned, _ = align_face_5pt(face_img, f.kps)
@@ -103,7 +105,7 @@ def recognize_face(face_img) -> Tuple[str, float]:
 
     name = mr.name if mr.name is not None else "Unknown"
     confidence = mr.similarity
-    return name, confidence
+    return name, confidence, f.kps
 
 
 # -------------------------
