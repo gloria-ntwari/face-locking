@@ -310,9 +310,41 @@ def main():
     embedder = ArcFaceEmbedderONNX()
     matcher = FaceDBMatcher(load_db_npz(db_path), dist_thresh=0.34)
 
-    cap = cv2.VideoCapture(0)
+    import os
+    import sys
+    import contextlib
+
+    def _get_camera_index(default: int = 1) -> int:
+        s = os.environ.get("CAMERA_INDEX")
+        if s is None:
+            return default
+        try:
+            return int(s)
+        except Exception:
+            return default
+
+    @contextlib.contextmanager
+    def _suppress_stderr():
+        try:
+            fd = sys.stderr.fileno()
+        except Exception:
+            yield
+            return
+        saved_fd = os.dup(fd)
+        devnull = os.open(os.devnull, os.O_RDWR)
+        try:
+            os.dup2(devnull, fd)
+            yield
+        finally:
+            os.dup2(saved_fd, fd)
+            os.close(saved_fd)
+            os.close(devnull)
+
+    cam_idx = _get_camera_index(1)
+    with _suppress_stderr():
+        cap = cv2.VideoCapture(cam_idx)
     if not cap.isOpened():
-        raise RuntimeError("Camera not available")
+        raise RuntimeError(f"Camera index {cam_idx} not available. Set CAMERA_INDEX to choose another camera.")
 
     print("Recognize: q quit | r reload | +/- threshold")
 

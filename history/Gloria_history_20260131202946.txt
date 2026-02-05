@@ -1,4 +1,0 @@
-[20:29:46] LOCKED Face successfully locked
-[20:29:59] MOVE_LEFT 
-[20:30:19] MOVE_RIGHT 
-[20:30:19] MOVE_LEFT 

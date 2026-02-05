@@ -181,7 +181,39 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 # Demo
 # -------------------------
 def main():
-    cap = cv2.VideoCapture(0)
+    import os
+    import sys
+    import contextlib
+
+    def _get_camera_index(default: int = 1) -> int:
+        s = os.environ.get("CAMERA_INDEX")
+        if s is None:
+            return default
+        try:
+            return int(s)
+        except Exception:
+            return default
+
+    @contextlib.contextmanager
+    def _suppress_stderr():
+        try:
+            fd = sys.stderr.fileno()
+        except Exception:
+            yield
+            return
+        saved_fd = os.dup(fd)
+        devnull = os.open(os.devnull, os.O_RDWR)
+        try:
+            os.dup2(devnull, fd)
+            yield
+        finally:
+            os.dup2(saved_fd, fd)
+            os.close(saved_fd)
+            os.close(devnull)
+
+    cam_idx = _get_camera_index(1)
+    with _suppress_stderr():
+        cap = cv2.VideoCapture(cam_idx)
 
     det = Haar5ptDetector(
         min_size=(70, 70),

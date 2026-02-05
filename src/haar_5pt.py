@@ -310,7 +310,11 @@ class Haar5ptDetector:
 # Demo
 # -------------------------
 def main():
-    cap = cv2.VideoCapture(0)
+    import os
+
+    cam_idx = int(os.environ.get("CAMERA_INDEX", "1"))
+    cap = cv2.VideoCapture(cam_idx, cv2.CAP_DSHOW)
+
     det = Haar5ptDetector(min_size=(70, 70), smooth_alpha=0.80, debug=True)
 
     print("Haar + 5pt (FaceMesh). Press q to quit.")
@@ -329,15 +333,7 @@ def main():
             for (x, y) in f.kps.astype(int):
                 cv2.circle(vis, (x, y), 3, (0, 255, 0), -1)
         else:
-            cv2.putText(
-                vis,
-                "no face",
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                (0, 0, 255),
-                2,
-            )
+            cv2.putText(vis, "no face", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
 
         cv2.imshow("haar_5pt", vis)
         if (cv2.waitKey(1) & 0xFF) == ord("q"):
